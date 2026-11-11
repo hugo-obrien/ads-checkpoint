@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { tasks } from '@/tasks/registry'
+import {tasks} from '@/tasks/registry'
 </script>
 
 <template>
@@ -17,10 +17,10 @@ import { tasks } from '@/tasks/registry'
 
       <template v-if="tasks.length">
         <RouterLink
-          v-for="task in tasks"
-          :key="task.id"
-          :to="`/task/${task.slug}`"
-          class="task-card"
+            v-for="task in tasks"
+            :key="task.id"
+            :to="`/task/${task.slug}`"
+            class="task-card"
         >
           <span class="task-num">{{ task.id }}</span>
           <div class="task-info">

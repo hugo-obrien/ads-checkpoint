@@ -10,7 +10,7 @@
       </RouterLink>
     </header>
 
-    <RouterView />
+    <RouterView/>
 
     <footer class="site-footer">
       <span>Контрольное задание · TypeScript + Vue</span>

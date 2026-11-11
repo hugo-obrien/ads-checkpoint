@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
-import { tasks } from '@/tasks/registry'
+import {useRoute} from 'vue-router'
+import {tasks} from '@/tasks/registry'
 
 const route = useRoute()
 
@@ -19,7 +19,7 @@ const currentTask = tasks.find((t) => route.name === `task-${t.slug}`)
     </header>
 
     <main class="task-body">
-      <slot />
+      <slot/>
     </main>
   </div>
 </template>
