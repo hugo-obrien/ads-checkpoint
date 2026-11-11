@@ -6,7 +6,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Статика лежит вместе с фронтендом.
+  base: '/ads-checkpoint/',
   publicDir: 'front/public',
   plugins: [
     vue(),
