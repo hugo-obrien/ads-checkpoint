@@ -18,3 +18,9 @@ export interface SortPayload {
 export interface HeapPayload {
     priorities: number[]
 }
+
+export interface HashTablePayload {
+    items: Array<{ id: number; name: string; room: string; status: string }>
+    capacity: number
+    method: 'chaining' | 'linear' | 'quadratic' | 'double'
+}
