@@ -4,8 +4,22 @@ export function hash1(id: number, capacity: number): number {
     return ((id % capacity) + capacity) % capacity
 }
 
+function gcd(a: number, b: number): number {
+    while (b !== 0) {
+        const t = a % b
+        a = b
+        b = t
+    }
+    return a
+}
+
 export function hash2(id: number, capacity: number): number {
-    return 1 + (((id % (capacity - 1)) + (capacity - 1)) % (capacity - 1))
+    if (capacity < 2) return 1
+    let step = 1 + (((id % (capacity - 1)) + (capacity - 1)) % (capacity - 1))
+    while (gcd(step, capacity) !== 1) {
+        step = step % capacity + 1
+    }
+    return step
 }
 
 function hashStep(id: number, capacity: number, probe: number, method: CollisionMethod): number {
