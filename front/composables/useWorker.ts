@@ -1,6 +1,14 @@
 import {onBeforeUnmount, ref, type Ref} from 'vue'
 import type {WorkerRequest, WorkerResponse} from '@core/workers/workerMessages'
-import type {CollisionMethod, Equipment, HashStats} from '@core/algorithms/types'
+import type {
+    CollisionMethod,
+    Equipment,
+    GraphEdge,
+    GraphStats,
+    HashStats,
+    MstResult,
+    PathResult,
+} from '@core/algorithms/types'
 
 export interface ComputeApi {
     buildHeap(priorities: number[]): Promise<number[]>
@@ -11,7 +19,14 @@ export interface ComputeApi {
         items: Equipment[],
         capacity: number,
         method: CollisionMethod,
-    ): Promise<{stats: HashStats}>
+    ): Promise<{ stats: HashStats }>
+
+    analyseGraph(
+        nodeIds: number[],
+        edges: GraphEdge[],
+        source: number,
+        target: number,
+    ): Promise<{ stats: GraphStats; shortest: PathResult; mst: MstResult }>
 }
 
 const computeApi: ComputeApi = {
@@ -19,6 +34,8 @@ const computeApi: ComputeApi = {
     heapSort: (priorities) => runWorker('heap-sort', {priorities}),
     buildHashTable: (items, capacity, method) =>
         runWorker('build-hash-table', {items, capacity, method}),
+    analyseGraph: (nodeIds, edges, source, target) =>
+        runWorker('analyse-graph', {nodeIds, edges, source, target}),
 }
 
 interface Deferred<T> {

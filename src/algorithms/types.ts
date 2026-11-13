@@ -64,3 +64,47 @@ export interface Traversals {
     postorder: number[]
     levelOrder: number[]
 }
+
+export interface GraphNode {
+    id: number
+    label: string
+}
+
+export interface GraphEdge {
+    from: number
+    to: number
+    weight: number
+}
+
+export interface AdjacencyList {
+    nodes: Map<number, Array<{ to: number; weight: number }>>
+}
+
+export interface GraphStats {
+    nodeCount: number
+    edgeCount: number
+    components: number
+    cycles: boolean
+    maxDegree: number
+    avgDegree: number
+    connected: boolean
+}
+
+export interface PathResult {
+    path: number[]
+    distance: number
+    visitOrder: number[]
+    found: boolean
+}
+
+export interface DijkstraResult {
+    source: number
+    distances: Record<number, number>
+    previous: Record<number, number | null>
+}
+
+export interface MstResult {
+    edges: GraphEdge[]
+    totalWeight: number
+    inMst: Array<{ from: number; to: number }>
+}

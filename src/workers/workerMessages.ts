@@ -24,3 +24,10 @@ export interface HashTablePayload {
     capacity: number
     method: 'chaining' | 'linear' | 'quadratic' | 'double'
 }
+
+export interface GraphPayload {
+    nodeIds: number[]
+    edges: Array<{ from: number; to: number; weight: number }>
+    source: number
+    target: number
+}
