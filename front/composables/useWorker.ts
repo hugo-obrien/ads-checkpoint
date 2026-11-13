@@ -4,7 +4,6 @@ import type {
     CollisionMethod,
     Equipment,
     GraphEdge,
-    GraphStats,
     HashStats,
     MstResult,
     PathResult,
@@ -21,12 +20,17 @@ export interface ComputeApi {
         method: CollisionMethod,
     ): Promise<{ stats: HashStats }>
 
-    analyseGraph(
+    computeShortest(
         nodeIds: number[],
         edges: GraphEdge[],
         source: number,
         target: number,
-    ): Promise<{ stats: GraphStats; shortest: PathResult; mst: MstResult }>
+    ): Promise<{ shortest: PathResult }>
+
+    computeMst(
+        nodeIds: number[],
+        edges: GraphEdge[],
+    ): Promise<{ mst: MstResult }>
 }
 
 const computeApi: ComputeApi = {
@@ -34,8 +38,10 @@ const computeApi: ComputeApi = {
     heapSort: (priorities) => runWorker('heap-sort', {priorities}),
     buildHashTable: (items, capacity, method) =>
         runWorker('build-hash-table', {items, capacity, method}),
-    analyseGraph: (nodeIds, edges, source, target) =>
-        runWorker('analyse-graph', {nodeIds, edges, source, target}),
+    computeShortest: (nodeIds, edges, source, target) =>
+        runWorker('compute-shortest', {nodeIds, edges, source, target}),
+    computeMst: (nodeIds, edges) =>
+        runWorker('compute-mst', {nodeIds, edges}),
 }
 
 interface Deferred<T> {

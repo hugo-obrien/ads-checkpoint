@@ -1,7 +1,7 @@
 import type {WorkerRequest, WorkerResponse} from './workerMessages'
 import {buildPriorityHeap, heapSortPrioritiesDesc} from '@core/algorithms/heap'
 import {buildTable} from '@core/algorithms/hash'
-import {analyseGraph} from '@core/algorithms/graph'
+import {buildAdjacency, kruskalMst, shortestPath} from '@core/algorithms/graph'
 import type {CollisionMethod, Equipment, GraphEdge} from '@core/algorithms/types'
 
 function run<T>(task: string, payload: T): unknown {
@@ -15,9 +15,14 @@ function run<T>(task: string, payload: T): unknown {
             const {stats} = buildTable(p.items, p.capacity, p.method)
             return {stats}
         }
-        case 'analyse-graph': {
+        case 'compute-shortest': {
             const p = payload as { nodeIds: number[]; edges: GraphEdge[]; source: number; target: number }
-            return analyseGraph(p.nodeIds, p.edges, p.source, p.target)
+            const adj = buildAdjacency(p.nodeIds, p.edges)
+            return {shortest: shortestPath(adj, p.source, p.target)}
+        }
+        case 'compute-mst': {
+            const p = payload as { nodeIds: number[]; edges: GraphEdge[] }
+            return {mst: kruskalMst(p.nodeIds, p.edges)}
         }
         default:
             throw new Error(`Unknown command: ${task}`)

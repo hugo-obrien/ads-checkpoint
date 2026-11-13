@@ -7,6 +7,8 @@ const props = defineProps<{
   edges: GraphEdge[]
   inMst?: Array<{ from: number; to: number }>
   pathEdges?: Array<{ from: number; to: number }>
+  showMst?: boolean
+  showPath?: boolean
 }>()
 
 const R = 24
@@ -101,11 +103,48 @@ onBeforeUnmount(() => {
   window.removeEventListener('mouseup', onWindowMouseUp)
 })
 
-const isInMst = (e: GraphEdge): boolean =>
-    !!props.inMst?.some((m) => (m.from === e.from && m.to === e.to) || (m.from === e.to && m.to === e.from))
+const inMstSet = computed(() => {
+  const s = new Set<string>()
+  for (const m of props.inMst ?? []) {
+    s.add(`${Math.min(m.from, m.to)}-${Math.max(m.from, m.to)}`)
+  }
+  return s
+})
 
-const isOnPath = (e: GraphEdge): boolean =>
-    !!props.pathEdges?.some((m) => (m.from === e.from && m.to === e.to) || (m.from === e.to && m.to === e.from))
+const inPathSet = computed(() => {
+  const s = new Set<string>()
+  for (const m of props.pathEdges ?? []) {
+    s.add(`${Math.min(m.from, m.to)}-${Math.max(m.from, m.to)}`)
+  }
+  return s
+})
+
+function edgeKey(e: GraphEdge): string {
+  return `${Math.min(e.from, e.to)}-${Math.max(e.from, e.to)}`
+}
+
+function edgeStroke(e: GraphEdge): string {
+  const isPath = props.showPath && inPathSet.value.has(edgeKey(e))
+  const isMst = props.showMst && inMstSet.value.has(edgeKey(e))
+  if (isPath) return '#FF823D'
+  if (isMst) return '#009A63'
+  return '#cfd9d5'
+}
+
+function edgeWidth(e: GraphEdge): number {
+  const isPath = props.showPath && inPathSet.value.has(edgeKey(e))
+  const isMst = props.showMst && inMstSet.value.has(edgeKey(e))
+  return isPath || isMst ? 3 : 2
+}
+
+function edgeDash(e: GraphEdge): string | undefined {
+  const isPath = props.showPath && inPathSet.value.has(edgeKey(e))
+  const isMst = props.showMst && inMstSet.value.has(edgeKey(e))
+
+  if (isPath) return undefined
+  if (isMst) return '5 4'
+  return undefined
+}
 
 function px(id: number): number {
   return layoutPositions.value.get(id)?.x ?? CENTER
@@ -141,8 +180,9 @@ function edgeMidY(e: GraphEdge): number {
             :y1="py(e.from)"
             :x2="px(e.to)"
             :y2="py(e.to)"
-            :stroke="isOnPath(e) ? '#FF823D' : (isInMst(e) ? '#009A63' : '#cfd9d5')"
-            :stroke-width="isOnPath(e) || isInMst(e) ? 3 : 2"
+            :stroke="edgeStroke(e)"
+            :stroke-width="edgeWidth(e)"
+            :stroke-dasharray="edgeDash(e)"
         />
 
         <text

@@ -24,9 +24,11 @@ const workerBusy = ref(false)
 const workerStatus = ref('')
 const workerError = ref<string | null>(null)
 
-const stats = ref<GraphStats | null>(null)
 const mst = ref<MstResult | null>(null)
 const shortest = ref<PathResult | null>(null)
+
+const showMst = ref(true)
+const showPath = ref(true)
 
 const {api} = useWorker()
 
@@ -152,7 +154,6 @@ function loadPreset(): void {
 function clearAll(): void {
     nodes.value = []
     edges.value = []
-    stats.value = null
     mst.value = null
     shortest.value = null
     traversalFrom.value = null
@@ -162,11 +163,7 @@ function clearAll(): void {
     workerStatus.value = ''
 }
 
-async function analyse(): Promise<void> {
-    if (nodes.value.length === 0) {
-        workerError.value = 'Сначала добавьте объекты (узлы) и маршруты (рёбра).'
-        return
-    }
+async function computeShortest(): Promise<void> {
     if (pathFrom.value === null || pathTo.value === null) {
         workerError.value = 'Выберите источник и цель кратчайшего пути.'
         return
@@ -175,20 +172,17 @@ async function analyse(): Promise<void> {
     workerStatus.value = ''
     workerError.value = null
     try {
-        const result = await api.analyseGraph(
+        const result = await api.computeShortest(
             nodes.value.map((n) => n.id),
             edges.value.map((e) => ({...e})),
             pathFrom.value,
             pathTo.value,
         )
-        stats.value = result.stats
-        mst.value = result.mst
         shortest.value = result.shortest
+        showPath.value = true
         workerStatus.value =
-            `Анализ выполнен в воркере: компонент=${result.stats.components}, ` +
-            `циклы=${result.stats.cycles ? 'есть' : 'нет'}, ` +
-            `MST=${result.mst.edges.length} рёбер (${result.mst.totalWeight} м), ` +
-            `путь ${pathFrom.value}→${pathTo.value} = ${result.shortest.path.join(' → ')} ` +
+            `Кратчайший путь ${nodeLabel(pathFrom.value)} → ${nodeLabel(pathTo.value)}: ` +
+            `[${result.shortest.path.join(' → ')}] ` +
             `(${result.shortest.found ? `${result.shortest.distance} м` : 'не найден'})`
     } catch (e) {
         workerError.value = e instanceof Error ? e.message : String(e)
@@ -197,12 +191,43 @@ async function analyse(): Promise<void> {
     }
 }
 
+async function computeMst(): Promise<void> {
+    if (nodes.value.length === 0) {
+        workerError.value = 'Сначала добавьте объекты (узлы) и маршруты (рёбра).'
+        return
+    }
+    workerBusy.value = true
+    workerStatus.value = ''
+    workerError.value = null
+    try {
+        const result = await api.computeMst(
+            nodes.value.map((n) => n.id),
+            edges.value.map((e) => ({...e})),
+        )
+        mst.value = result.mst
+        showMst.value = true
+        workerStatus.value =
+            `MST построено в воркере: ${result.mst.edges.length} рёбер, итоговый вес ${result.mst.totalWeight} м`
+    } catch (e) {
+        workerError.value = e instanceof Error ? e.message : String(e)
+    } finally {
+        workerBusy.value = false
+    }
+}
+
+function nodeLabel(id: number): string {
+    const n = nodes.value.find((x) => x.id === id)
+    return n ? `${n.id} «${n.label}»` : String(id)
+}
+
 function formatTraversal(order: number[] | null): string {
     if (!order || order.length === 0) return '—'
     return order.join(' → ')
 }
 
 const nodeOptions = computed(() => nodes.value.map((n) => n.id))
+
+const nodeChoices = computed(() => nodes.value.map((n) => ({id: n.id, label: n.label})))
 </script>
 
 <template>
@@ -249,25 +274,43 @@ const nodeOptions = computed(() => nodes.value.map((n) => n.id))
 
     <section class="panel">
       <h3>Схема сети маршрутов</h3>
-      <GraphViewer :nodes="nodes" :edges="edges" :in-mst="mst?.inMst" :path-edges="pathEdges" />
+      <div class="toggle-row">
+        <label class="toggle">
+          <input v-model="showMst" type="checkbox" />
+          <span>Остовное дерево (MST)</span>
+        </label>
+        <label class="toggle">
+          <input v-model="showPath" type="checkbox" />
+          <span>Кратчайший путь</span>
+        </label>
+      </div>
+      <GraphViewer
+          :nodes="nodes"
+          :edges="edges"
+          :in-mst="mst?.inMst"
+          :path-edges="pathEdges"
+          :show-mst="showMst"
+          :show-path="showPath"
+      />
       <p class="hint">
-        Зелёные рёбра — остовное дерево (Краскал), оранжевые — кратчайший путь от источника к цели.
+        Зелёное (пунктир) — минимальное остовное дерево, оранжевое — кратчайший путь.
+        Podсветку можно включать и выключать независимо.
       </p>
     </section>
 
     <div class="grid">
       <section class="panel">
         <h3>Статистика графа</h3>
-        <ul v-if="stats || localStats" class="stats-list">
-          <li>Объектов (узлов): <strong>{{ stats?.nodeCount ?? localStats?.nodeCount }}</strong></li>
-          <li>Маршрутов (рёбер): <strong>{{ stats?.edgeCount ?? localStats?.edgeCount }}</strong></li>
-          <li>Связных компонент: <strong>{{ stats?.components ?? localStats?.components }}</strong></li>
-          <li>Есть циклы: <strong>{{ (stats?.cycles ?? localStats?.cycles) ? 'да' : 'нет' }}</strong></li>
-          <li>Макс. степень: <strong>{{ stats?.maxDegree ?? localStats?.maxDegree }}</strong></li>
-          <li>Средняя степень: <strong>{{ (stats?.avgDegree ?? localStats?.avgDegree)?.toFixed(2) }}</strong></li>
-          <li>Граф связен: <strong>{{ (stats?.connected ?? localStats?.connected) ? 'да' : 'нет' }}</strong></li>
+        <ul v-if="localStats" class="stats-list">
+          <li>Объектов (узлов): <strong>{{ localStats.nodeCount }}</strong></li>
+          <li>Маршрутов (рёбер): <strong>{{ localStats.edgeCount }}</strong></li>
+          <li>Связных компонент: <strong>{{ localStats.components }}</strong></li>
+          <li>Есть циклы: <strong>{{ localStats.cycles ? 'да' : 'нет' }}</strong></li>
+          <li>Макс. степень: <strong>{{ localStats.maxDegree }}</strong></li>
+          <li>Средняя степень: <strong>{{ localStats.avgDegree.toFixed(2) }}</strong></li>
+          <li>Граф связен: <strong>{{ localStats.connected ? 'да' : 'нет' }}</strong></li>
         </ul>
-        <p v-else class="muted">Добавьте объекты и нажмите «Выполнить анализ».</p>
+        <p v-else class="muted">Добавьте объекты и маршруты.</p>
       </section>
 
       <section class="panel">
@@ -287,45 +330,50 @@ const nodeOptions = computed(() => nodes.value.map((n) => n.id))
     </div>
 
     <section class="panel">
-      <h3>Анализ: минимальное остовное дерево и кратчайший путь</h3>
+      <h3>Минимальное остовное дерево и кратчайший путь</h3>
       <div class="row">
         <label>
           Источник
           <select v-model.number="pathFrom">
             <option :value="null" disabled>—</option>
-            <option v-for="id in nodeOptions" :key="id" :value="id">{{ id }}</option>
+            <option v-for="c in nodeChoices" :key="c.id" :value="c.id">{{ c.id }} · {{ c.label }}</option>
           </select>
         </label>
         <label>
           Цель
           <select v-model.number="pathTo">
             <option :value="null" disabled>—</option>
-            <option v-for="id in nodeOptions" :key="id" :value="id">{{ id }}</option>
+            <option v-for="c in nodeChoices" :key="c.id" :value="c.id">{{ c.id }} · {{ c.label }}</option>
           </select>
         </label>
-        <button class="btn btn-primary" :disabled="workerBusy" @click="analyse">
-          Выполнить анализ в воркере
+        <button class="btn btn-primary" :disabled="workerBusy" @click="computeShortest">
+          Кратчайший путь
+        </button>
+        <button class="btn btn-primary" :disabled="workerBusy" @click="computeMst">
+          Остовное дерево
         </button>
       </div>
       <p v-if="workerStatus" class="muted">{{ workerStatus }}</p>
 
-      <div v-if="shortest" class="analysis">
+      <div class="analysis">
         <div class="block">
           <h4>Кратчайший путь (Дейкстра)</h4>
-          <p v-if="shortest.found">
+          <p v-if="shortest && shortest.found">
             <code>{{ shortest.path.join(' → ') }}</code>
             <span class="muted"> · длина {{ shortest.distance }} м</span>
           </p>
-          <p v-else class="muted">Путь от источника к цели не найден (разные компоненты).</p>
+          <p v-else-if="shortest" class="muted">Путь от источника к цели не найден (разные компоненты).</p>
+          <p v-else class="muted">Нажмите «Кратчайший путь».</p>
         </div>
-        <div v-if="mst" class="block">
+        <div class="block">
           <h4>Минимальное остовное дерево (Краскал)</h4>
-          <ul class="mst-list">
+          <ul v-if="mst" class="mst-list">
             <li v-for="(e, i) in mst.edges" :key="i">
               {{ e.from }} – {{ e.to }} · {{ e.weight }} м
             </li>
           </ul>
-          <p class="muted">Итоговый вес: {{ mst.totalWeight }} м</p>
+          <p v-if="mst" class="muted">Итоговый вес: {{ mst.totalWeight }} м</p>
+          <p v-else class="muted">Нажмите «Остовное дерево».</p>
         </div>
       </div>
     </section>
@@ -520,6 +568,27 @@ const nodeOptions = computed(() => nodes.value.map((n) => n.id))
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.2rem;
+}
+
+.toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin-bottom: 0.9rem;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: var(--color-primary);
+  cursor: pointer;
 }
 
 @media (max-width: 720px) {
