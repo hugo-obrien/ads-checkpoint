@@ -43,7 +43,7 @@ watch(
 const layoutPositions = computed(() => {
   const pos = new Map<number, { x: number; y: number }>()
   props.nodes.forEach((n) => {
-    pos.set(n.id, positions[String(n.id)])
+    pos.set(n.id, positions[String(n.id)]!)
   })
   return pos
 })
