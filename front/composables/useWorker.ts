@@ -5,6 +5,7 @@ import type {
     Equipment,
     GraphEdge,
     HashStats,
+    LisResult,
     MstResult,
     PathResult,
 } from '@core/algorithms/types'
@@ -31,6 +32,10 @@ export interface ComputeApi {
         nodeIds: number[],
         edges: GraphEdge[],
     ): Promise<{ mst: MstResult }>
+
+    computeLis(
+        values: number[],
+    ): Promise<{ optimal: LisResult; naive: LisResult | null }>
 }
 
 const computeApi: ComputeApi = {
@@ -42,6 +47,7 @@ const computeApi: ComputeApi = {
         runWorker('compute-shortest', {nodeIds, edges, source, target}),
     computeMst: (nodeIds, edges) =>
         runWorker('compute-mst', {nodeIds, edges}),
+    computeLis: (values) => runWorker('compute-lis', {values}),
 }
 
 interface Deferred<T> {

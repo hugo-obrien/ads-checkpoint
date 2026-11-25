@@ -108,3 +108,15 @@ export interface MstResult {
     totalWeight: number
     inMst: Array<{ from: number; to: number }>
 }
+
+export interface LisResult {
+    seq: number[]
+    indices: number[]
+    length: number
+    comparisons: number
+}
+
+export interface LisComparison {
+    naive: LisResult
+    optimal: LisResult
+}

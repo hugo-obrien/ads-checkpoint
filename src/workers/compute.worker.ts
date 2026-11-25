@@ -2,7 +2,10 @@ import type {WorkerRequest, WorkerResponse} from './workerMessages'
 import {buildPriorityHeap, heapSortPrioritiesDesc} from '@core/algorithms/heap'
 import {buildTable} from '@core/algorithms/hash'
 import {buildAdjacency, kruskalMst, shortestPath} from '@core/algorithms/graph'
+import {lisNaive, lisOptimal} from '@core/algorithms/lis'
 import type {CollisionMethod, Equipment, GraphEdge} from '@core/algorithms/types'
+
+const NAIVE_LIMIT = 5000
 
 function run<T>(task: string, payload: T): unknown {
     switch (task) {
@@ -23,6 +26,12 @@ function run<T>(task: string, payload: T): unknown {
         case 'compute-mst': {
             const p = payload as { nodeIds: number[]; edges: GraphEdge[] }
             return {mst: kruskalMst(p.nodeIds, p.edges)}
+        }
+        case 'compute-lis': {
+            const p = payload as { values: number[] }
+            const optimal = lisOptimal(p.values)
+            const naive = p.values.length <= NAIVE_LIMIT ? lisNaive(p.values) : null
+            return {optimal, naive}
         }
         default:
             throw new Error(`Unknown command: ${task}`)

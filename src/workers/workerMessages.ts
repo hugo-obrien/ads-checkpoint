@@ -31,3 +31,7 @@ export interface GraphPayload {
     source: number
     target: number
 }
+
+export interface LisPayload {
+    values: number[]
+}
